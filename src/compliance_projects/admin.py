@@ -6,11 +6,6 @@ from django.shortcuts import reverse
 from compliance_projects import models
 
 
-class ProjectEvidenceInline(admin.TabularInline):
-    model = models.ProjectEvidence
-    extra = 1
-
-
 class ControlInline(admin.TabularInline):
     model = models.Control
     extra = 1
@@ -30,7 +25,6 @@ class AdminControl(admin.ModelAdmin):
 
 @admin.register(models.ComplianceProject)
 class AdminComplianceProject(admin.ModelAdmin):
-    inlines = [ProjectEvidenceInline]
     filter_horizontal = [
         "frameworks", 
         "policies"
@@ -46,6 +40,7 @@ class AdminComplianceProject(admin.ModelAdmin):
                     "policies",
                     "description", 
                     "target_level",
+                    "evidences",
                 ],
             "classes" : ["wide", "extrapretty"]
             }
@@ -152,7 +147,3 @@ class AdminEvidence(admin.ModelAdmin):
     list_display = ["name", "project", "solved", "created_at"]
     prepopulated_fields = {"slug" : ["name"]}
 
-
-@admin.register(models.ProjectEvidence)
-class AdminProjectEvidence(admin.ModelAdmin):
-    list_display = ["project", "evidence"]

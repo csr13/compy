@@ -80,14 +80,20 @@ class Control(models.Model):
                 return False, str(error)
             try:
                 if len(subcontrols) > 0:
+                    added_already = []
                     for each in subcontrols:
                         try:
                             subcontrol = SubControl.objects.create(**each) 
+                            subcontrol.parent_control = parent_control
+                            subcontrol.save()
+                            if subcontrol in added_already:
+                                continue
+                            added_already.append(subcontrol)
                             parent_control.subcontrols.add(subcontrol)
-                            parent_control.save()
                         except Exception as error:
                             logger.info(str(error))
                             continue
+                    parent_control.save()
             except Exception as error:
                 logger.info(str(error))
             framework.controls.add(parent_control)
@@ -124,7 +130,7 @@ class SubControl(models.Model):
         verbose_name_plural = "Sub Controls"
 
     def __str__(self):
-        return self.name
+        return self.ref_code
 
 
 class Policy(models.Model):
@@ -409,60 +415,6 @@ class ComplianceProject(models.Model):
         self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
-
-class ProjectEvidence(models.Model):
-    project = models.ForeignKey(
-        'compliance_projects.ComplianceProject',
-        on_delete=models.CASCADE,
-        null=True
-    )
-    evidence = models.ForeignKey(
-        'compliance_projects.Evidence',
-        on_delete=models.CASCADE,
-        null=True
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
-
-    class Meta:
-        ordering = ("-created_at",)
-        verbose_name = "Project Evidence"
-        verbose_name_plural = "Project Evidences"
-
-    @classmethod
-    def cook_evidence(cls, user, project, evidence):
-        if cls.objects.filter(project=project, evidence=evidence).exists():
-            return False, "This evidence already exists."
-        if project.evidences.filter(evidence=evidence).exists():
-            return False, "This evidence already exists in this project."
-        try:
-            project_evidence = cls.objects.create(
-                project=project, 
-                evidence=evidence
-            )
-        except Exception as error:
-            return False, "Unable to create project evidence"
-        try:
-            project.evidences.add(evidence)
-        except Exception as error:
-            return False, "Unable to add evidence to project evidences."
-        return True, "Project evidence relation created,added to project evidences."    
-
-    @classmethod
-    def delete_project_evidence(cls, project, evidence):
-        try:
-            cls.objects.filter(project=project, evidence=evidence).delete()
-        except Exception as error:
-            logger.error(str(error))
-            return False, "Unable to delete project evidence"
-        return True, "Project evidence deleted."
-
-    def __str__(self):
-        evidence = self.evidence.description
-        project_name = self.project.name
-        return "%s - %s" % (project_name, evidence)
-   
 
 class PolicyControl(models.Model):
     policy = models.ForeignKey(
