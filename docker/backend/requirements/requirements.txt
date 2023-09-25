@@ -1,0 +1,5 @@
+django
+Pillow
+gunicorn
+psycopg2-binary
+tablib

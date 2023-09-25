@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  backend:
+    container_name: compliance
+    image: compliance
+    build:
+      context: .
+      dockerfile: ./docker/backend/dev/Dockerfile
+    entrypoint: /start.sh
+    depends_on:
+      compliance_database:
+        condition: service_healthy
+    env_file: ['./docker/backend/dev/.env']
+    restart: unless-stopped
+    volumes:
+      - ./src:/src:rw
+    expose:
+      - 6969
+    networks:
+      compliance_network:
+        ipv4_address: 192.168.32.3
+
+  compliance_database:
+    container_name: compliance_database
+    image: postgres
+    env_file: ['./docker/backend/dev/.env']
+    restart: unless-stopped
+    volumes:
+      - backend_database:/var/lib/postgresql/data
+    expose:
+      - 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      compliance_network:
+        ipv4_address: 192.168.32.2
+
+volumes:
+  backend_database: {}
+
+networks:
+  compliance_network:
+    name: compliance_network
+    ipam:
+      config:
+        - subnet: 192.168.32.0/20
